@@ -5,8 +5,6 @@ import (
 	"reflect"
 )
 
-// TODO: add config size limit??
-
 // ICfg is an interface defined for consumer according to *gocfg.Cfg
 type ICfg interface {
 	Bool(key string) (bool, bool)
@@ -33,17 +31,20 @@ type ICfg interface {
 
 	Load(URL string, config interface{}) error
 	Print()
+	Debug()
 }
 
 // Cfg is an abstraction over a configuration
 type Cfg struct {
-	BoolVals   map[string]bool
-	IntVals    map[string]int
-	FloatVals  map[string]float64
-	StringVals map[string]string
-	MapVals    map[string]interface{}
-	SliceVals  map[string]interface{}
-	StructVals map[string]interface{}
+	debug bool
+
+	boolVals   map[string]bool
+	intVals    map[string]int
+	floatVals  map[string]float64
+	stringVals map[string]string
+	mapVals    map[string]interface{}
+	sliceVals  map[string]interface{}
+	structVals map[string]interface{}
 }
 
 type valueInfo struct {
@@ -55,14 +56,20 @@ type valueInfo struct {
 // New returns a new *Cfg
 func New() *Cfg {
 	return &Cfg{
-		BoolVals:   map[string]bool{},
-		IntVals:    map[string]int{},
-		FloatVals:  map[string]float64{},
-		StringVals: map[string]string{},
-		MapVals:    map[string]interface{}{},
-		SliceVals:  map[string]interface{}{},
-		StructVals: map[string]interface{}{},
+		debug:      false,
+		boolVals:   map[string]bool{},
+		intVals:    map[string]int{},
+		floatVals:  map[string]float64{},
+		stringVals: map[string]string{},
+		mapVals:    map[string]interface{}{},
+		sliceVals:  map[string]interface{}{},
+		structVals: map[string]interface{}{},
 	}
+}
+
+// Debug opens debug mode and prints more logs.
+func (c *Cfg) Debug() {
+	c.debug = true
 }
 
 // Load loads configuration from local path according to config's definition
@@ -74,27 +81,33 @@ func (c *Cfg) Load(pvd CfgProvider, config interface{}) error {
 	return c.visit(config)
 }
 
+func (c *Cfg) warnf(format string, vals ...interface{}) {
+	if c.debug {
+		fmt.Printf(format, vals...)
+	}
+}
+
 // Print prints all of the values in the Cfg
 func (c *Cfg) Print() {
-	for k, v := range c.BoolVals {
+	for k, v := range c.boolVals {
 		fmt.Printf("\n%s:bool = %t", k, v)
 	}
-	for k, v := range c.IntVals {
+	for k, v := range c.intVals {
 		fmt.Printf("\n%s:int = %d", k, v)
 	}
-	for k, v := range c.FloatVals {
+	for k, v := range c.floatVals {
 		fmt.Printf("\n%s:float = %f", k, v)
 	}
-	for k, v := range c.StringVals {
+	for k, v := range c.stringVals {
 		fmt.Printf("\n%s:string = %s", k, v)
 	}
-	for k, v := range c.MapVals {
+	for k, v := range c.mapVals {
 		fmt.Printf("\n%s:map = %v", k, v)
 	}
-	for k, v := range c.SliceVals {
+	for k, v := range c.sliceVals {
 		fmt.Printf("\n%s:slice = %v", k, v)
 	}
-	for k, v := range c.StructVals {
+	for k, v := range c.structVals {
 		fmt.Printf("\n%s:struct = %v", k, v)
 	}
 }
@@ -117,15 +130,15 @@ func (c *Cfg) visit(cfgObj interface{}) error {
 		k := e.v.Kind()
 		switch {
 		case k == reflect.Bool:
-			c.BoolVals[e.path] = e.v.Bool()
+			c.boolVals[e.path] = e.v.Bool()
 		case k == reflect.Int:
-			c.IntVals[e.path] = e.v.Interface().(int) // use int instead of uint/int/8/16/32/64
+			c.intVals[e.path] = e.v.Interface().(int) // use int instead of uint/int/8/16/32/64
 		case k == reflect.Float64:
-			c.FloatVals[e.path] = e.v.Float()
+			c.floatVals[e.path] = e.v.Float()
 		case k == reflect.String:
-			c.StringVals[e.path] = e.v.String()
+			c.stringVals[e.path] = e.v.String()
 		case k == reflect.Map:
-			c.MapVals[e.path] = e.v.Interface()
+			c.mapVals[e.path] = e.v.Interface()
 		case k == reflect.Slice:
 			sliceVal := e.v
 			for i := 0; i < sliceVal.Len(); i++ {
@@ -143,7 +156,8 @@ func (c *Cfg) visit(cfgObj interface{}) error {
 				}
 				queue = append(queue, info)
 			}
-			c.SliceVals[e.path] = e.v.Interface()
+			// also set the whole slice as a config value
+			c.sliceVals[e.path] = e.v.Interface()
 		case k == reflect.Struct:
 			structVal := e.v
 			for i := 0; i < structVal.NumField(); i++ {
@@ -161,7 +175,7 @@ func (c *Cfg) visit(cfgObj interface{}) error {
 				queue = append(queue, info)
 			}
 			// also set the whole struct as a config value
-			c.StructVals[e.path] = e.v.Interface()
+			c.structVals[e.path] = e.v.Interface()
 		case k == reflect.Ptr:
 			info := &valueInfo{
 				v:    e.v.Elem(),
@@ -171,7 +185,7 @@ func (c *Cfg) visit(cfgObj interface{}) error {
 			queue = append(queue, info)
 		case k == reflect.Invalid:
 			if !e.v.IsValid() {
-				fmt.Printf("gocfg: warning: %s(kind=%s) is zero value\n", e.path, k)
+				c.warnf("gocfg: warning: %s(kind=%s) is zero value\n", e.path, k)
 				// no op if the field is nil
 				// From go doc:
 				// IsValid reports whether v represents a value.
@@ -195,84 +209,84 @@ func (c *Cfg) visit(cfgObj interface{}) error {
 
 // Bool get a configuration value according to key, the second returned value is false if nothing not found.
 func (c *Cfg) Bool(key string) (bool, bool) {
-	val, ok := c.BoolVals[key]
+	val, ok := c.boolVals[key]
 	return val, ok
 }
 
 // Int get a configuration value according to key, the second returned value is false if nothing not found.
 func (c *Cfg) Int(key string) (int, bool) {
-	val, ok := c.IntVals[key]
+	val, ok := c.intVals[key]
 	return val, ok
 }
 
 // Float get a configuration value according to key, the second returned value is false if nothing not found.
 func (c *Cfg) Float(key string) (float64, bool) {
-	val, ok := c.FloatVals[key]
+	val, ok := c.floatVals[key]
 	return val, ok
 }
 
 // String get a configuration value according to key, the second returned value is false if nothing not found.
 func (c *Cfg) String(key string) (string, bool) {
-	val, ok := c.StringVals[key]
+	val, ok := c.stringVals[key]
 	return val, ok
 }
 
 // Map get a configuration value according to key, the second returned value is false if nothing not found.
 func (c *Cfg) Map(key string) (interface{}, bool) {
-	val, ok := c.MapVals[key]
+	val, ok := c.mapVals[key]
 	return val, ok
 }
 
 // Slice get a configuration value according to key, the second returned value is false if nothing not found.
 func (c *Cfg) Slice(key string) (interface{}, bool) {
-	val, ok := c.SliceVals[key]
+	val, ok := c.sliceVals[key]
 	return val, ok
 }
 
 // Struct get a configuration value according to key, the second returned value is false if nothing not found.
 func (c *Cfg) Struct(key string) (interface{}, bool) {
-	val, ok := c.StructVals[key]
+	val, ok := c.structVals[key]
 	return val, ok
 }
 
 // GrabBool get a configuration value according to the key, it returns zero value if no value is found.
-func (c *Cfg) GrabBool(key string) bool { return c.BoolVals[key] }
+func (c *Cfg) GrabBool(key string) bool { return c.boolVals[key] }
 
 // GrabInt get a configuration value according to the key, it returns zero value if no value is found.
-func (c *Cfg) GrabInt(key string) int { return c.IntVals[key] }
+func (c *Cfg) GrabInt(key string) int { return c.intVals[key] }
 
 // GrabFloat get a configuration value according to the key, it returns zero value if no value is found.
-func (c *Cfg) GrabFloat(key string) float64 { return c.FloatVals[key] }
+func (c *Cfg) GrabFloat(key string) float64 { return c.floatVals[key] }
 
 // GrabString get a configuration value according to the key, it returns zero value if no value is found.
-func (c *Cfg) GrabString(key string) string { return c.StringVals[key] }
+func (c *Cfg) GrabString(key string) string { return c.stringVals[key] }
 
 // GrabMap get a configuration value according to the key, it returns zero value if no value is found.
-func (c *Cfg) GrabMap(key string) interface{} { return c.MapVals[key] }
+func (c *Cfg) GrabMap(key string) interface{} { return c.mapVals[key] }
 
 // GrabSlice get a configuration value according to the key, it returns zero value if no value is found.
-func (c *Cfg) GrabSlice(key string) interface{} { return c.SliceVals[key] }
+func (c *Cfg) GrabSlice(key string) interface{} { return c.sliceVals[key] }
 
 // GrabStruct get a configuration value according to the key, it returns zero value if no value is found.
-func (c *Cfg) GrabStruct(key string) interface{} { return c.StructVals[key] }
+func (c *Cfg) GrabStruct(key string) interface{} { return c.structVals[key] }
 
 // SetBool set val in Cfg according to the key.
-func (c *Cfg) SetBool(key string, val bool) { c.BoolVals[key] = val }
+func (c *Cfg) SetBool(key string, val bool) { c.boolVals[key] = val }
 
 // SetInt set val in Cfg according to the key.
-func (c *Cfg) SetInt(key string, val int) { c.IntVals[key] = val }
+func (c *Cfg) SetInt(key string, val int) { c.intVals[key] = val }
 
 // SetFloat set val in Cfg according to the key.
-func (c *Cfg) SetFloat(key string, val float64) { c.FloatVals[key] = val }
+func (c *Cfg) SetFloat(key string, val float64) { c.floatVals[key] = val }
 
 // SetString set val in Cfg according to the key.
-func (c *Cfg) SetString(key string, val string) { c.StringVals[key] = val }
+func (c *Cfg) SetString(key string, val string) { c.stringVals[key] = val }
 
 // SetMap set val in Cfg according to the key.
-func (c *Cfg) SetMap(key string, val interface{}) { c.MapVals[key] = val }
+func (c *Cfg) SetMap(key string, val interface{}) { c.mapVals[key] = val }
 
 // SetSlice set val in Cfg according to the key.
-func (c *Cfg) SetSlice(key string, val interface{}) { c.SliceVals[key] = val }
+func (c *Cfg) SetSlice(key string, val interface{}) { c.sliceVals[key] = val }
 
 // SetStruct set val in Cfg according to the key.
-func (c *Cfg) SetStruct(key string, val interface{}) { c.StructVals[key] = val }
+func (c *Cfg) SetStruct(key string, val interface{}) { c.structVals[key] = val }

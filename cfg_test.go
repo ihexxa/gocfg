@@ -1,9 +1,14 @@
 package gocfg
 
-import "testing"
+import (
+	"encoding/json"
+	"fmt"
+	"testing"
+)
 
 func TestNormalCases(t *testing.T) {
-	t.Run("normal cases", testBaiscCases)
+	// t.Run("normal cases", testBaiscCases)
+	t.Run("overall tests", testStructCases)
 }
 
 func testBaiscCases(t *testing.T) {
@@ -94,32 +99,151 @@ func testBaiscCases(t *testing.T) {
 	}
 
 	for i, input := range inputs {
-		cfger := New()
-		err := cfger.Load(JSONStr(input), &config{})
+		cfg := New()
+		err := cfg.Load(JSONStr(input), &config{})
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		output := outputs[i]
 		for key, val := range output.bools {
-			if cfger.GrabBool(key) != val {
-				t.Fatalf("key %s not match: expected: %t, got: %t", key, val, cfger.GrabBool(key))
+			if cfg.GrabBool(key) != val {
+				t.Fatalf("key %s not match: expected: %t, got: %t", key, val, cfg.GrabBool(key))
 			}
 		}
 		for key, val := range output.ints {
-			if cfger.GrabInt(key) != val {
-				t.Fatalf("key %s not match: expected: %d, got: %d", key, val, cfger.GrabInt(key))
+			if cfg.GrabInt(key) != val {
+				t.Fatalf("key %s not match: expected: %d, got: %d", key, val, cfg.GrabInt(key))
 			}
 		}
 		for key, val := range output.floats {
-			if cfger.GrabFloat(key) != val {
-				t.Fatalf("key %s not match: expected: %f, got: %f", key, val, cfger.GrabFloat(key))
+			if cfg.GrabFloat(key) != val {
+				t.Fatalf("key %s not match: expected: %f, got: %f", key, val, cfg.GrabFloat(key))
 			}
 		}
 		for key, val := range output.strings {
-			if cfger.GrabString(key) != val {
-				t.Fatalf("key %s not match: expected: %s, got: %s", key, val, cfger.GrabString(key))
+			if cfg.GrabString(key) != val {
+				t.Fatalf("key %s not match: expected: %s, got: %s", key, val, cfg.GrabString(key))
 			}
+		}
+	}
+}
+
+type testConfig struct {
+	BoolVal   bool          `json:"boolVal"`
+	IntVal    int           `json:"intVal"`
+	FloatVal  float64       `json:"floatVal"`
+	StringVal string        `json:"stringVal"`
+	SliceVal  []*testConfig `json:"sliceVal"`
+	StructVal *testConfig   `json:"structVal"`
+}
+
+func genConfig(size int) (string, *testConfig) {
+	root := newCfgNode(0, size)
+	cfgBytes, err := json.Marshal(root)
+	if err != nil {
+		panic(err) // TODO: use Fatalf instead
+	}
+
+	return string(cfgBytes), root
+}
+
+func checkConfig(id, size int, path string, cfg *Cfg, node *testConfig) error {
+	boolPath := fmt.Sprintf("%s.BoolVal", path)
+	intPath := fmt.Sprintf("%s.IntVal", path)
+	floatPath := fmt.Sprintf("%s.FloatVal", path)
+	stringPath := fmt.Sprintf("%s.StringVal", path)
+	if path == "" {
+		// for direct children of the root, there no dot in the path
+		boolPath = "BoolVal"
+		intPath = "IntVal"
+		floatPath = "FloatVal"
+		stringPath = "StringVal"
+	}
+
+	if node.BoolVal != cfg.GrabBool(boolPath) {
+		return fmt.Errorf("id:%d BoolVal not match %t %t %s", id, node.BoolVal, cfg.GrabBool(boolPath), boolPath)
+	}
+	if node.IntVal != cfg.GrabInt(intPath) {
+		return fmt.Errorf("id:%d IntVal not match %d %d %s", id, node.IntVal, cfg.GrabInt(intPath), intPath)
+	}
+	if node.FloatVal != cfg.GrabFloat(floatPath) {
+		return fmt.Errorf("id:%d FloatVal not match %f %f %s", id, node.FloatVal, cfg.GrabFloat(floatPath), floatPath)
+	}
+	if node.StringVal != cfg.GrabString(stringPath) {
+		return fmt.Errorf("id:%d StringVal not match %s %s %s", id, node.StringVal, cfg.GrabString(stringPath), stringPath)
+	}
+
+	prefix := fmt.Sprintf("%s.", path)
+	if path == "" {
+		prefix = ""
+	}
+
+	for _, i := range []int{1, 2} {
+		if id+i >= size {
+			return nil
+		} else if len(node.SliceVal) < i {
+			return fmt.Errorf("id:%d incorrect slice size: %v", id, node)
+		} else {
+			err := checkConfig(id+i, size, fmt.Sprintf("%sSliceVal[%d]", prefix, i-1), cfg, node.SliceVal[i-1])
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if id+3 >= size {
+		return nil
+	} else if node.StructVal == nil {
+		return fmt.Errorf("id:%d struct should not be nil: %v", id, node)
+	} else if err := checkConfig(id+3, size, fmt.Sprintf("%sStructVal", prefix), cfg, node.StructVal); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func newCfgNode(id, size int) *testConfig {
+	if id >= size {
+		// TODO: randomly add zero value
+		// although it should be same in getting value
+		return nil
+	}
+
+	leftNode := newCfgNode(id+1, size)
+	rightNode := newCfgNode(id+2, size)
+	structNode := newCfgNode(id+3, size)
+	return &testConfig{
+		BoolVal:   id%2 == 0,
+		IntVal:    id,
+		FloatVal:  float64(id),
+		StringVal: fmt.Sprintf("%d", id),
+		SliceVal: []*testConfig{
+			leftNode,
+			rightNode,
+		},
+		StructVal: structNode,
+	}
+}
+
+func testStructCases(t *testing.T) {
+	inputs := []int{
+		5,
+		8,
+	}
+
+	var err error
+	for _, configSize := range inputs {
+		input, root := genConfig(configSize)
+		cfg := New()
+		err = cfg.Load(JSONStr(input), &testConfig{})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = checkConfig(0, configSize, "", cfg, root)
+		if err != nil {
+			t.Fatal(err)
 		}
 	}
 }
