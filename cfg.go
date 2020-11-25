@@ -15,6 +15,14 @@ type ICfg interface {
 	Slice(key string) (interface{}, error)
 	Struct(key string) (interface{}, error)
 
+	BoolOr(key string, defaultVal bool) bool
+	IntOr(key string, defaultVal int) int
+	FloatOr(key string, defaultVal float64) float64
+	StringOr(key string, defaultVal string) string
+	MapOr(key string, defaultVal interface{}) interface{}
+	SliceOr(key string, defaultVal interface{}) interface{}
+	StructOr(key string, defaultVal interface{}) interface{}
+
 	GrabBool(key string) bool
 	GrabInt(key string) int
 	GrabFloat(key string) float64
@@ -247,6 +255,69 @@ func (c *Cfg) Slice(key string) (interface{}, bool) {
 func (c *Cfg) Struct(key string) (interface{}, bool) {
 	val, ok := c.structVals[key]
 	return val, ok
+}
+
+// BoolOr get a configuration value according to the key, or it returns the defaultVal instead.
+func (c *Cfg) BoolOr(key string, defaultVal bool) bool {
+	val, ok := c.boolVals[key]
+	if ok {
+		return val
+	}
+	return defaultVal
+}
+
+// IntOr get a configuration value according to the key, or it returns the defaultVal instead.
+func (c *Cfg) IntOr(key string, defaultVal int) int {
+	val, ok := c.intVals[key]
+	if ok {
+		return val
+	}
+	return defaultVal
+}
+
+// FloatOr get a configuration value according to the key, or it returns the defaultVal instead.
+func (c *Cfg) FloatOr(key string, defaultVal float64) float64 {
+	val, ok := c.floatVals[key]
+	if ok {
+		return val
+	}
+	return defaultVal
+}
+
+// StringOr get a configuration value according to the key, or it returns the defaultVal instead.
+func (c *Cfg) StringOr(key string, defaultVal string) string {
+	val, ok := c.stringVals[key]
+	if ok {
+		return val
+	}
+	return defaultVal
+}
+
+// MapOr get a configuration value according to the key, or it returns the defaultVal instead.
+func (c *Cfg) MapOr(key string, defaultVal interface{}) interface{} {
+	val, ok := c.mapVals[key]
+	if ok {
+		return val
+	}
+	return defaultVal
+}
+
+// SliceOr get a configuration value according to the key, or it returns the defaultVal instead.
+func (c *Cfg) SliceOr(key string, defaultVal interface{}) interface{} {
+	val, ok := c.sliceVals[key]
+	if ok {
+		return val
+	}
+	return defaultVal
+}
+
+// StructOr get a configuration value according to the key, or it returns the defaultVal instead.
+func (c *Cfg) StructOr(key string, defaultVal interface{}) interface{} {
+	val, ok := c.structVals[key]
+	if ok {
+		return val
+	}
+	return defaultVal
 }
 
 // GrabBool get a configuration value according to the key, it returns zero value if no value is found.

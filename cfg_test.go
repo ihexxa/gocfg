@@ -107,23 +107,23 @@ func testBaiscCases(t *testing.T) {
 
 		output := outputs[i]
 		for key, val := range output.bools {
-			if cfg.GrabBool(key) != val {
-				t.Fatalf("key %s not match: expected: %t, got: %t", key, val, cfg.GrabBool(key))
+			if cfg.BoolOr(key, false) != val {
+				t.Fatalf("key %s not match: expected: %t, got: %t", key, val, cfg.BoolOr(key, false))
 			}
 		}
 		for key, val := range output.ints {
-			if cfg.GrabInt(key) != val {
-				t.Fatalf("key %s not match: expected: %d, got: %d", key, val, cfg.GrabInt(key))
+			if cfg.IntOr(key, -1) != val {
+				t.Fatalf("key %s not match: expected: %d, got: %d", key, val, cfg.IntOr(key, -1))
 			}
 		}
 		for key, val := range output.floats {
-			if cfg.GrabFloat(key) != val {
-				t.Fatalf("key %s not match: expected: %f, got: %f", key, val, cfg.GrabFloat(key))
+			if cfg.FloatOr(key, -1.0) != val {
+				t.Fatalf("key %s not match: expected: %f, got: %f", key, val, cfg.FloatOr(key, -1.0))
 			}
 		}
 		for key, val := range output.strings {
-			if cfg.GrabString(key) != val {
-				t.Fatalf("key %s not match: expected: %s, got: %s", key, val, cfg.GrabString(key))
+			if cfg.StringOr(key, "") != val {
+				t.Fatalf("key %s not match: expected: %s, got: %s", key, val, cfg.StringOr(key, ""))
 			}
 		}
 	}
@@ -161,17 +161,17 @@ func checkConfig(id, size int, path string, cfg *Cfg, node *testConfig) error {
 		stringPath = "StringVal"
 	}
 
-	if node.BoolVal != cfg.GrabBool(boolPath) {
-		return fmt.Errorf("id:%d BoolVal not match %t %t %s", id, node.BoolVal, cfg.GrabBool(boolPath), boolPath)
+	if node.BoolVal != cfg.BoolOr(boolPath, false) {
+		return fmt.Errorf("id:%d BoolVal not match %t %t %s", id, node.BoolVal, cfg.BoolOr(boolPath, false), boolPath)
 	}
-	if node.IntVal != cfg.GrabInt(intPath) {
-		return fmt.Errorf("id:%d IntVal not match %d %d %s", id, node.IntVal, cfg.GrabInt(intPath), intPath)
+	if node.IntVal != cfg.IntOr(intPath, -1) {
+		return fmt.Errorf("id:%d IntVal not match %d %d %s", id, node.IntVal, cfg.IntOr(intPath, -1), intPath)
 	}
-	if node.FloatVal != cfg.GrabFloat(floatPath) {
-		return fmt.Errorf("id:%d FloatVal not match %f %f %s", id, node.FloatVal, cfg.GrabFloat(floatPath), floatPath)
+	if node.FloatVal != cfg.FloatOr(floatPath, -1.0) {
+		return fmt.Errorf("id:%d FloatVal not match %f %f %s", id, node.FloatVal, cfg.FloatOr(floatPath, -1.0), floatPath)
 	}
-	if node.StringVal != cfg.GrabString(stringPath) {
-		return fmt.Errorf("id:%d StringVal not match %s %s %s", id, node.StringVal, cfg.GrabString(stringPath), stringPath)
+	if node.StringVal != cfg.StringOr(stringPath, "-1") {
+		return fmt.Errorf("id:%d StringVal not match %s %s %s", id, node.StringVal, cfg.StringOr(stringPath, "-1"), stringPath)
 	}
 
 	prefix := fmt.Sprintf("%s.", path)
