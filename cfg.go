@@ -11,9 +11,9 @@ type ICfg interface {
 	Int(key string) (int, bool)
 	Float(key string) (float64, bool)
 	String(key string) (string, bool)
-	Map(key string) (interface{}, error)
-	Slice(key string) (interface{}, error)
-	Struct(key string) (interface{}, error)
+	Map(key string) (interface{}, bool)
+	Slice(key string) (interface{}, bool)
+	Struct(key string) (interface{}, bool)
 
 	BoolOr(key string, defaultVal bool) bool
 	IntOr(key string, defaultVal int) int
@@ -37,7 +37,7 @@ type ICfg interface {
 	SetString(key string, val string)
 	SetStruct(key string, val interface{})
 
-	Load(URL string, config interface{}) error
+	Load(pvd CfgProvider, config interface{}) error
 	Print()
 	Debug()
 }
