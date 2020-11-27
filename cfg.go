@@ -2,8 +2,14 @@ package gocfg
 
 import (
 	"fmt"
+	"os"
 	"reflect"
+	"strings"
 )
+
+var GocfgTag = "cfg"
+var GocfgValEnv = "env"
+var GocfgValRequired = "required"
 
 // ICfg is an interface defined for consumer according to *gocfg.Cfg
 type ICfg interface {
@@ -175,6 +181,24 @@ func (c *Cfg) visit(cfgObj interface{}) error {
 				if e.path == "" {
 					childPath = childName
 				}
+
+				// check if it should be retrieved from env
+				tagValue := structVal.Type().Field(i).Tag.Get(GocfgTag)
+				isEnv := strings.Contains(tagValue, GocfgValEnv)
+				isRequired := strings.Contains(tagValue, GocfgValRequired)
+				envName := strings.ToUpper(childName)
+
+				if isEnv {
+					envValue, exist := os.LookupEnv(envName)
+					if !exist && isRequired {
+						return fmt.Errorf("gocfg: warning: %s must be defined as an environment", envName)
+					}
+					fmt.Println(fmt.Sprintf("ENV.%s", envName), envValue)
+					// set the value even it does not exist
+					c.stringVals[fmt.Sprintf("ENV.%s", envName)] = envValue
+					continue
+				}
+
 				info := &valueInfo{
 					v:    childValue,
 					name: childName,
