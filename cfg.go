@@ -43,14 +43,14 @@ type ICfg interface {
 	SetString(key string, val string)
 	SetStruct(key string, val interface{})
 
-	Load(pvd CfgProvider, config interface{}) error
 	Print()
 	Debug()
 }
 
 // Cfg is an abstraction over a configuration
 type Cfg struct {
-	debug bool
+	debug    bool
+	template interface{}
 
 	boolVals   map[string]bool
 	intVals    map[string]int
@@ -68,9 +68,10 @@ type valueInfo struct {
 }
 
 // New returns a new *Cfg
-func New() *Cfg {
+func New(template interface{}) *Cfg {
 	return &Cfg{
 		debug:      false,
+		template:   template,
 		boolVals:   map[string]bool{},
 		intVals:    map[string]int{},
 		floatVals:  map[string]float64{},
@@ -87,12 +88,17 @@ func (c *Cfg) Debug() {
 }
 
 // Load loads configuration from local path according to config's definition
-func (c *Cfg) Load(pvd CfgProvider, config interface{}) error {
-	err := pvd.Load(config)
-	if err != nil {
-		return err
+func (c *Cfg) Load(pvds ...CfgProvider) (*Cfg, error) {
+	var err error
+	for _, pvd := range pvds {
+		if err = pvd.Load(c.template); err != nil {
+			return nil, err
+		}
+		if err = c.visit(c.template); err != nil {
+			return nil, err
+		}
 	}
-	return c.visit(config)
+	return c, nil
 }
 
 func (c *Cfg) warnf(format string, vals ...interface{}) {

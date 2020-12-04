@@ -77,3 +77,18 @@ func (cfg *YAMLCfg) Load(dstCfg interface{}) error {
 
 	return yaml.Unmarshal(cfgBytes, dstCfg)
 }
+
+// YAMLStrCfg is a configuration loader for a local yaml file
+type YAMLStrCfg struct {
+	content string
+}
+
+// YAMLStr inits a YAMLStrCfg according to the json file in the path
+func YAMLStr(content string) *YAMLStrCfg {
+	return &YAMLStrCfg{content: content}
+}
+
+// Load populates yaml file according to the definition of the dstCfg
+func (cfg *YAMLStrCfg) Load(dstCfg interface{}) error {
+	return yaml.Unmarshal([]byte(cfg.content), dstCfg)
+}
