@@ -110,25 +110,25 @@ func (c *Cfg) warnf(format string, vals ...interface{}) {
 // Print prints all of the values in the Cfg
 func (c *Cfg) Print() {
 	for k, v := range c.boolVals {
-		fmt.Printf("\n%s:bool = %t", k, v)
+		fmt.Printf("%s:bool = %t\n", k, v)
 	}
 	for k, v := range c.intVals {
-		fmt.Printf("\n%s:int = %d", k, v)
+		fmt.Printf("%s:int = %d\n", k, v)
 	}
 	for k, v := range c.floatVals {
-		fmt.Printf("\n%s:float = %f", k, v)
+		fmt.Printf("%s:float = %f\n", k, v)
 	}
 	for k, v := range c.stringVals {
-		fmt.Printf("\n%s:string = %s", k, v)
+		fmt.Printf("%s:string = %s\n", k, v)
 	}
 	for k, v := range c.mapVals {
-		fmt.Printf("\n%s:map = %v", k, v)
+		fmt.Printf("%s:map = %v\n", k, v)
 	}
 	for k, v := range c.sliceVals {
-		fmt.Printf("\n%s:slice = %v", k, v)
+		fmt.Printf("%s:slice = %v\n", k, v)
 	}
 	for k, v := range c.structVals {
-		fmt.Printf("\n%s:struct = %v", k, v)
+		fmt.Printf("%s:struct = %v\n", k, v)
 	}
 }
 
@@ -199,7 +199,6 @@ func (c *Cfg) visit(cfgObj interface{}) error {
 					if !exist && isRequired {
 						return fmt.Errorf("gocfg: warning: %s must be defined as an environment", envName)
 					}
-					fmt.Println(fmt.Sprintf("ENV.%s", envName), envValue)
 					// set the value even it does not exist
 					c.stringVals[fmt.Sprintf("ENV.%s", envName)] = envValue
 					continue
