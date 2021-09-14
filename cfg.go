@@ -201,9 +201,9 @@ func (c *Cfg) visit(cfgObj interface{}) error {
 					}
 					// set the value even it does not exist
 					c.stringVals[fmt.Sprintf("ENV.%s", envName)] = envValue
-					continue
 				}
 
+				// also set the config value accodingly
 				info := &valueInfo{
 					v:    childValue,
 					name: childName,

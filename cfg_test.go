@@ -3,6 +3,7 @@ package gocfg
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"testing"
 )
 
@@ -16,13 +17,14 @@ func TestNormalCases(t *testing.T) {
 			maps    map[string]interface{}
 			slices  map[string]interface{}
 			structs map[string]interface{}
+			envs    map[string]string
 		}
 
 		type config struct {
 			BoolVal   bool    `json:"boolVal"`
 			IntVal    int     `json:"intVal"`
 			FloatVal  float64 `json:"floatVal"`
-			StringVal string  `json:"stringVal"`
+			StringVal string  `json:"stringVal" cfg:"env"`
 			// MapVal    []*config `json:"mapVal"`
 			SliceVal  []*config `json:"sliceVal"`
 			StructVal *config   `json:"structVal"`
@@ -65,6 +67,17 @@ func TestNormalCases(t *testing.T) {
 			`,
 		}
 
+		envStringVal := "valueFromEnv"
+		envs := map[string]string{
+			"STRINGVAL": envStringVal,
+		}
+		for env, val := range envs {
+			err := os.Setenv(env, val)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
 		outputs := []*Output{
 			&Output{
 				bools: map[string]bool{
@@ -90,6 +103,9 @@ func TestNormalCases(t *testing.T) {
 					"SliceVal[0].StringVal": "11",
 					"SliceVal[1].StringVal": "12",
 					"StructVal.StringVal":   "2",
+				},
+				envs: map[string]string{
+					"ENV.STRINGVAL": envStringVal,
 				},
 			},
 		}
@@ -117,6 +133,11 @@ func TestNormalCases(t *testing.T) {
 				}
 			}
 			for key, val := range output.strings {
+				if cfg.StringOr(key, "") != val {
+					t.Fatalf("key %s not match: expected: %s, got: %s", key, val, cfg.StringOr(key, ""))
+				}
+			}
+			for key, val := range output.envs {
 				if cfg.StringOr(key, "") != val {
 					t.Fatalf("key %s not match: expected: %s, got: %s", key, val, cfg.StringOr(key, ""))
 				}
