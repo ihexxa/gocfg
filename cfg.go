@@ -1,9 +1,11 @@
 package gocfg
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -37,6 +39,14 @@ type ICfg interface {
 	GrabSlice(key string) interface{}
 	GrabStruct(key string) interface{}
 
+	Bools() map[string]bool
+	Ints() map[string]int
+	Floats() map[string]float64
+	Strings() map[string]string
+	Maps() map[string]interface{}
+	Slices() map[string]interface{}
+	Structs() map[string]interface{}
+
 	SetBool(key string, val bool)
 	SetInt(key string, val int)
 	SetFloat(key string, val float64)
@@ -45,6 +55,7 @@ type ICfg interface {
 
 	Print()
 	Debug()
+	ToString() string
 }
 
 // Cfg is an abstraction over a configuration
@@ -109,27 +120,97 @@ func (c *Cfg) warnf(format string, vals ...interface{}) {
 
 // Print prints all of the values in the Cfg
 func (c *Cfg) Print() {
-	for k, v := range c.boolVals {
-		fmt.Printf("%s:bool = %t\n", k, v)
+	fmt.Println(c.ToString())
+}
+
+// String returns all of the values in the Cfg as a string
+func (c *Cfg) ToString() string {
+	keys := []string{}
+	rows := []string{}
+
+	for k := range c.boolVals {
+		keys = append(keys, k)
 	}
-	for k, v := range c.intVals {
-		fmt.Printf("%s:int = %d\n", k, v)
+	sort.Strings(keys)
+	for _, k := range keys {
+		v := c.boolVals[k]
+		rows = append(rows, fmt.Sprintf("%s:bool = %t", k, v))
 	}
-	for k, v := range c.floatVals {
-		fmt.Printf("%s:float = %f\n", k, v)
+	keys = keys[:0]
+
+	for k := range c.intVals {
+		keys = append(keys, k)
 	}
-	for k, v := range c.stringVals {
-		fmt.Printf("%s:string = %s\n", k, v)
+	sort.Strings(keys)
+	for _, k := range keys {
+		v := c.intVals[k]
+		rows = append(rows, fmt.Sprintf("%s:int = %d", k, v))
 	}
-	for k, v := range c.mapVals {
-		fmt.Printf("%s:map = %v\n", k, v)
+	keys = keys[:0]
+
+	for k := range c.floatVals {
+		keys = append(keys, k)
 	}
-	for k, v := range c.sliceVals {
-		fmt.Printf("%s:slice = %v\n", k, v)
+	sort.Strings(keys)
+	for _, k := range keys {
+		v := c.floatVals[k]
+		rows = append(rows, fmt.Sprintf("%s:float = %f", k, v))
 	}
-	for k, v := range c.structVals {
-		fmt.Printf("%s:struct = %v\n", k, v)
+	keys = keys[:0]
+
+	for k := range c.stringVals {
+		keys = append(keys, k)
 	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		v := c.stringVals[k]
+		rows = append(rows, fmt.Sprintf("%s:string = %s", k, v))
+	}
+	keys = keys[:0]
+
+	for k := range c.mapVals {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		mv := c.mapVals[k]
+		mvBytes, err := json.Marshal(mv)
+		if err != nil {
+			panic(err)
+		}
+		rows = append(rows, fmt.Sprintf("%s:map = %v", k, string(mvBytes)))
+	}
+	keys = keys[:0]
+
+	for k := range c.sliceVals {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		sv := c.sliceVals[k]
+		svBytes, err := json.Marshal(sv)
+		if err != nil {
+			panic(err)
+		}
+		rows = append(rows, fmt.Sprintf("%s:slice = %v", k, string(svBytes)))
+	}
+	keys = keys[:0]
+
+	for k := range c.structVals {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		sv := c.structVals[k]
+		svBytes, err := json.Marshal(sv)
+		if err != nil {
+			panic(err)
+		}
+		rows = append(rows, fmt.Sprintf("%s:struct = %v", k, string(svBytes)))
+	}
+	keys = keys[:0]
+
+	return strings.Join(rows, "\n")
 }
 
 func (c *Cfg) visit(cfgObj interface{}) error {
@@ -390,3 +471,25 @@ func (c *Cfg) SetSlice(key string, val interface{}) { c.sliceVals[key] = val }
 
 // SetStruct set val in Cfg according to the key.
 func (c *Cfg) SetStruct(key string, val interface{}) { c.structVals[key] = val }
+
+func (c *Cfg) Bools() map[string]bool {
+	return c.boolVals
+}
+func (c *Cfg) Ints() map[string]int {
+	return c.intVals
+}
+func (c *Cfg) Floats() map[string]float64 {
+	return c.floatVals
+}
+func (c *Cfg) Strings() map[string]string {
+	return c.stringVals
+}
+func (c *Cfg) Maps() map[string]interface{} {
+	return c.mapVals
+}
+func (c *Cfg) Slices() map[string]interface{} {
+	return c.sliceVals
+}
+func (c *Cfg) Structs() map[string]interface{} {
+	return c.structVals
+}

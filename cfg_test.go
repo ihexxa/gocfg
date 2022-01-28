@@ -8,6 +8,16 @@ import (
 )
 
 func TestNormalCases(t *testing.T) {
+	type config struct {
+		BoolVal   bool    `json:"boolVal"`
+		IntVal    int     `json:"intVal"`
+		FloatVal  float64 `json:"floatVal"`
+		StringVal string  `json:"stringVal" cfg:"env"`
+		// MapVal    []*config `json:"mapVal"`
+		SliceVal  []*config `json:"sliceVal"`
+		StructVal *config   `json:"structVal"`
+	}
+
 	t.Run("test basic types", func(t *testing.T) {
 		type Output struct {
 			bools   map[string]bool
@@ -18,16 +28,6 @@ func TestNormalCases(t *testing.T) {
 			slices  map[string]interface{}
 			structs map[string]interface{}
 			envs    map[string]string
-		}
-
-		type config struct {
-			BoolVal   bool    `json:"boolVal"`
-			IntVal    int     `json:"intVal"`
-			FloatVal  float64 `json:"floatVal"`
-			StringVal string  `json:"stringVal" cfg:"env"`
-			// MapVal    []*config `json:"mapVal"`
-			SliceVal  []*config `json:"sliceVal"`
-			StructVal *config   `json:"structVal"`
 		}
 
 		inputs := []string{
