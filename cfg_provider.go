@@ -92,3 +92,22 @@ func YAMLStr(content string) *YAMLStrCfg {
 func (cfg *YAMLStrCfg) Load(dstCfg interface{}) error {
 	return yaml.Unmarshal([]byte(cfg.content), dstCfg)
 }
+
+// GoCfgCfg is a configuration loader for a gocfg struct
+type GoCfgCfg struct {
+	srcCfg *Cfg
+}
+
+// GoCfg inits a GoCfgCfg
+func GoCfg(srcCfg *Cfg) *GoCfgCfg {
+	return &GoCfgCfg{srcCfg: srcCfg}
+}
+
+// Load populates gocfg struct and save to
+func (cfg *GoCfgCfg) Load(dstCfg interface{}) error {
+	cfgBytes, err := json.Marshal(cfg.srcCfg.template)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(cfgBytes, dstCfg)
+}

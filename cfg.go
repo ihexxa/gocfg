@@ -475,21 +475,27 @@ func (c *Cfg) SetStruct(key string, val interface{}) { c.structVals[key] = val }
 func (c *Cfg) Bools() map[string]bool {
 	return c.boolVals
 }
+
 func (c *Cfg) Ints() map[string]int {
 	return c.intVals
 }
+
 func (c *Cfg) Floats() map[string]float64 {
 	return c.floatVals
 }
+
 func (c *Cfg) Strings() map[string]string {
 	return c.stringVals
 }
+
 func (c *Cfg) Maps() map[string]interface{} {
 	return c.mapVals
 }
+
 func (c *Cfg) Slices() map[string]interface{} {
 	return c.sliceVals
 }
+
 func (c *Cfg) Structs() map[string]interface{} {
 	return c.structVals
 }

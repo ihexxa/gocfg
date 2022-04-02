@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"testing"
 )
 
@@ -162,6 +163,80 @@ func TestNormalCases(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+		}
+	})
+
+	t.Run("providers test", func(t *testing.T) {
+		type config struct {
+			BoolVal   bool               `json:"boolVal"`
+			IntVal    int                `json:"intVal"`
+			FloatVal  float64            `json:"floatVal"`
+			StringVal string             `json:"stringVal" cfg:"env"`
+			MapVal    map[string]*config `json:"mapVal"`
+			SliceVal  []*config          `json:"sliceVal"`
+			StructVal *config            `json:"structVal"`
+		}
+
+		cfg := &config{
+			BoolVal:   true,
+			IntVal:    1,
+			FloatVal:  1,
+			StringVal: "1",
+			MapVal: map[string]*config{
+				"2": &config{
+					BoolVal:   true,
+					IntVal:    2,
+					FloatVal:  2,
+					StringVal: "2",
+				},
+			},
+			SliceVal: []*config{
+				&config{
+					BoolVal:   true,
+					IntVal:    2,
+					FloatVal:  2,
+					StringVal: "2",
+				},
+			},
+			StructVal: &config{
+				BoolVal:   true,
+				IntVal:    2,
+				FloatVal:  2,
+				StringVal: "2",
+			},
+		}
+
+		var err error
+		var dstCfg *Cfg
+
+		dstCfg = New(&config{})
+		srcGoCfg := New(cfg)
+		dstCfg, err = dstCfg.Load(GoCfg(srcGoCfg))
+		if err != nil {
+			t.Fatal(err)
+		} else if !reflect.DeepEqual(dstCfg.template, cfg) {
+			c1, _ := json.Marshal(dstCfg.template)
+			c2, _ := json.Marshal(cfg)
+			fmt.Println(string(c1))
+			fmt.Println(string(c2))
+			t.Fatal("go cfg not equal")
+		}
+
+		dstCfg = New(&config{})
+		srcJsonStrBytes, err := json.Marshal(cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		dstCfg, err = dstCfg.Load(JSONStr(string(srcJsonStrBytes)))
+		if err != nil {
+			t.Fatal(err)
+		} else if !reflect.DeepEqual(dstCfg.template, cfg) {
+			c1, _ := json.Marshal(dstCfg.template)
+			c2, _ := json.Marshal(cfg)
+			fmt.Println(string(c1))
+			fmt.Println(string(c2))
+			t.Fatal("json str cfg not equal")
 		}
 	})
 }
