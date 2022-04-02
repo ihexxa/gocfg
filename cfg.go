@@ -56,6 +56,7 @@ type ICfg interface {
 	Print()
 	Debug()
 	ToString() string
+	JSON() string
 }
 
 // Cfg is an abstraction over a configuration
@@ -116,6 +117,14 @@ func (c *Cfg) warnf(format string, vals ...interface{}) {
 	if c.debug {
 		fmt.Printf(format, vals...)
 	}
+}
+
+func (c *Cfg) JSON() (string, error) {
+	tpltBytes, err := json.Marshal(c.template)
+	if err != nil {
+		return "", err
+	}
+	return string(tpltBytes), nil
 }
 
 // Print prints all of the values in the Cfg
