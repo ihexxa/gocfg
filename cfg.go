@@ -56,7 +56,7 @@ type ICfg interface {
 	Print()
 	Debug()
 	ToString() string
-	JSON() string
+	JSON() (string, error)
 	Template() interface{}
 }
 
